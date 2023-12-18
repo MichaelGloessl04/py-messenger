@@ -64,16 +64,21 @@ class DBHandler:
         except AttributeError:
             return False
 
-    def get_users(self):
+    def get_users(self, user_id=None):
         with Session(self.engine) as s:
-            users = s.query(User).all()
+            if user_id:
+                users = s.query(User).filter_by(id=user_id).one()
+            else:
+                users = s.query(User).all()
             return users
 
     def get_chat(self, user1, user2):
         with Session(self.engine) as s:
-            messages = s.query(Messages).filter_by(sender=user1,
-                                                   receiver=self.get_user_id(user2)).all()
-            messages += s.query(Messages).filter_by(sender=self.get_user_id(user2),
-                                                    receiver=user1).all()
+            messages = s.query(Messages).filter_by(
+                sender=user1,
+                receiver=self.get_user_id(user2)).all()
+            messages += s.query(Messages).filter_by(
+                sender=self.get_user_id(user2),
+                receiver=user1).all()
             messages.sort(key=lambda x: x.time)
             return messages
