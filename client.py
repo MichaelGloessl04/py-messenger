@@ -1,7 +1,6 @@
-import datetime
 import socket
+import time
 
-# Server details
 SERVER_HOST = 'localhost'
 SERVER_PORT = 12345
 
@@ -10,10 +9,16 @@ def start_client():
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     conn_user = None
 
-    try:
-        conn.connect((SERVER_HOST, SERVER_PORT))
-        print('Connected to the server.')
+    print('Connecting to the server...', end='')
+    while True:
+        try:
+            conn.connect((SERVER_HOST, SERVER_PORT))
+            break
+        except ConnectionRefusedError:
+            print('.\n', end='')
+            time.sleep(1)
 
+    try:
         conn_user = login(conn)
 
         while True:
@@ -23,9 +28,6 @@ def start_client():
             for i, user in enumerate(users):
                 print(f'{user[0]}. {user[1]}')
             chat_with(conn, conn_user, input('\nChat with: '))
-    except ConnectionRefusedError:
-        print('Failed to connect to the server.')
-
     finally:
         conn.close()
 
@@ -57,14 +59,18 @@ def login(conn):
 
 
 def chat_with(conn, conn_user, user):
-    print(f'\nChat with {user}:')
+    conn.send(str(['users', user]).encode())
+    response = conn.recv(1024).decode()
+    print(f'\nChat with {response[1]}:')
     while True:
         conn.send(
-            str(['chat', conn_user, user, datetime.datetime.now()]).encode()
+            str(['chat', conn_user, user]).encode()
         )
         chat = eval(conn.recv(1024).decode())
         for message in chat:
             print(f'{message.sender}: {message.message}')
 
         message = input('\nMessage: ')
-        conn.send(str(['send', user, message]).encode())
+        conn.send(
+            str(['send', conn_user, user, message]).encode()
+        )

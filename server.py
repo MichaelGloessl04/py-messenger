@@ -22,9 +22,14 @@ def handle_client(conn, addr):
                 elif request[0] == 'login':
                     handle_login(conn, request[1], request[2])
                 elif request[0] == 'send':
-                    handle_new_message(request[1], request[2], request[3])
+                    handle_new_message(
+                        dbh.get_user_id(request[1]), request[2], request[3]
+                    )
                 elif request[0] == 'users':
-                    handle_users(conn)
+                    if len(request) >= 2:
+                        handle_users(conn, request[1])
+                    else:
+                        handle_users(conn)
                 elif request[0] == 'chat':
                     handler_chat(conn, request[1], request[2])
                 else:
@@ -66,10 +71,15 @@ def handle_new_message(sender, recipient, message):
                     message, datetime.datetime.now())
 
 
-def handle_users(conn):
-    users = dbh.get_users()
-    ret = [[user.id, user.username] for user in users]
-    conn.send(str(ret).encode())
+def handle_users(conn, user_id=None):
+    if user_id:
+        user = dbh.get_users(user_id)
+        ret = [user[0].id, user[0].username]
+        conn.send(str(ret).encode())
+    else:
+        users = dbh.get_users()
+        ret = [[user.id, user.username] for user in users]
+        conn.send(str(ret).encode())
 
 
 def start_server():
