@@ -31,7 +31,7 @@ def handle_client(conn, addr):
                     else:
                         handle_users(conn)
                 elif request[0] == 'chat':
-                    handler_chat(conn, request[1], request[2])
+                    handle_chat(conn, request[1], request[2])
                 else:
                     conn.send(str('Invalid request').encode())
 
@@ -39,7 +39,21 @@ def handle_client(conn, addr):
         print(f'Connection to {addr} closed')
 
 
-def handler_chat(conn, user1, user2):
+def handle_chat(conn, user1, user2):
+    try:
+        if user1.isnumeric():
+            user1 = int(user1)
+        elif isinstance(user1, str):
+            user1 = dbh.get_user_id(user1)
+    except AttributeError:
+        pass
+    try:
+        if user2.isnumeric():
+            user2 = int(user2)
+        elif isinstance(user2, str):
+            user2 = dbh.get_user_id(user2)
+    except AttributeError:
+        pass
     chat = dbh.get_chat(user1, user2)
     conn.send(str(chat).encode())
 
@@ -67,14 +81,28 @@ def handle_login(conn, username, password):
 
 
 def handle_new_message(sender, recipient, message):
-    dbh.new_message(sender, dbh.get_user_id(recipient),
+    try:
+        if sender.isnumeric():
+            sender = int(sender)
+        elif isinstance(sender, str):
+            sender = dbh.get_user_id(sender)
+    except AttributeError:
+        pass
+    try:
+        if recipient.isnumeric():
+            recipient = int(recipient)
+        elif isinstance(recipient, str):
+            recipient = dbh.get_user_id(recipient)
+    except AttributeError:
+        pass
+    dbh.new_message(sender, recipient,
                     message, datetime.datetime.now())
 
 
 def handle_users(conn, user_id=None):
     if user_id:
         user = dbh.get_users(user_id)
-        ret = [user[0].id, user[0].username]
+        ret = [user.id, user.username]
         conn.send(str(ret).encode())
     else:
         users = dbh.get_users()

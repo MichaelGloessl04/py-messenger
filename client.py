@@ -1,5 +1,6 @@
 import socket
 import time
+import datetime
 
 SERVER_HOST = 'localhost'
 SERVER_PORT = 12345
@@ -55,22 +56,27 @@ def login(conn):
 
         print(response)
         if response.startswith('Logged in as'):
+            print(datetime.datetime.now())
             return response.split(' ')[-1]
 
 
 def chat_with(conn, conn_user, user):
     conn.send(str(['users', user]).encode())
-    response = conn.recv(1024).decode()
+    response = list(eval(conn.recv(1024).decode()))
     print(f'\nChat with {response[1]}:')
     while True:
         conn.send(
             str(['chat', conn_user, user]).encode()
         )
-        chat = eval(conn.recv(1024).decode())
+        je = conn.recv(1024).decode()
+        chat = list(eval(je))
         for message in chat:
-            print(f'{message.sender}: {message.message}')
+            print(f'{message[0]}: {message[1]}')
 
-        message = input('\nMessage: ')
+        message = input('\nMessage (type "exit" to quit): ')
+        if message.lower() == 'exit':
+            break
+
         conn.send(
             str(['send', conn_user, user, message]).encode()
         )

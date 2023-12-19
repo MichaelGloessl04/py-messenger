@@ -2,6 +2,7 @@ from sqlalchemy import Column, ForeignKey, create_engine
 from sqlalchemy import Integer, String, DateTime
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import and_, or_
 
 Base = declarative_base()
 
@@ -53,6 +54,13 @@ class DBHandler:
         except AttributeError:
             return 0
 
+    def get_users(self, user_id=None):
+        with Session(self.engine) as s:
+            if user_id:
+                return s.query(User).filter_by(id=user_id).first()
+            else:
+                return s.query(User).all()
+
     def check_password(self, username, password):
         try:
             with Session(self.engine) as s:
@@ -64,21 +72,16 @@ class DBHandler:
         except AttributeError:
             return False
 
-    def get_users(self, user_id=None):
-        with Session(self.engine) as s:
-            if user_id:
-                users = s.query(User).filter_by(id=user_id).one()
-            else:
-                users = s.query(User).all()
-            return users
-
     def get_chat(self, user1, user2):
         with Session(self.engine) as s:
-            messages = s.query(Messages).filter_by(
-                sender=user1,
-                receiver=self.get_user_id(user2)).all()
-            messages += s.query(Messages).filter_by(
-                sender=self.get_user_id(user2),
-                receiver=user1).all()
-            messages.sort(key=lambda x: x.time)
-            return messages
+            messages = s.query(Messages).filter(
+                or_(
+                    and_(Messages.sender == user1,
+                         Messages.receiver == user2),
+                    and_(Messages.sender == user2,
+                         Messages.receiver == user1)
+                )
+            ).order_by(Messages.time).all()
+            return [[self.get_users(message.sender).username,
+                     message.message,
+                     message.time] for message in messages]
